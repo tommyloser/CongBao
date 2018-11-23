@@ -1,0 +1,9 @@
+ext{
+    // 定义扩展属性aa = map
+    signConfigs = ['storeFile'    : 'youdo.jks',
+                   'storePassword': 'rzq123456',
+                   'keyAlias'     : 'qndroid',
+                   'keyPassword'  : 'rzq123456']
+    android = ['compileSdkVersion': 27]
+}
+

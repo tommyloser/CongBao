@@ -1,1 +1,7 @@
 include ':app'
+
+println 'setting 初始化阶段开始...'
+
+if (hasProperty('isLoadTest') ? isLoadTest.toBoolean() : false) {
+    include ':app'
+}

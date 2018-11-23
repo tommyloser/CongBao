@@ -3,9 +3,15 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
 apply plugin: 'kotlin-android-extensions'
-
+def mCompileSdkVersion = 27
+//扩展属性
+//ext {
+//    compileSdkVersion = 25//使用 this.compileSdkVersion
+//}
 android {
-    compileSdkVersion 27
+//    compileSdkVersion rootProject.ext.android.compileSdkVersion
+    compileSdkVersion mMyVersion.toInteger()
+//    compileSdkVersion this.compileSdkVersion
     defaultConfig {
         applicationId "com.cong.congbao"
         minSdkVersion 16
@@ -20,11 +26,46 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    sourceSets {
+        main{//jniLibs，so库存默认存放在 在main 文件夹
+            jniLibs.srcDirs = ['libs']//修改成app/libs
+        }
+    }
+
+    sourceSets {
+        main {
+            res.srcDirs = ['src/main/res',
+                           'src/main/res-ad',
+                           'src/main/res-player']
+        }
+    }
 }
 
+this.android.sourceSets {
+    //这里也可以调用sourceSets
+}
+
+/**
+ * 为应用程序添加依赖
+ */
 dependencies {
+//    implementation project() 依赖工程
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+    //依赖冲突
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+//            {//排除依赖冲突的包
+//        exclude modele: "support-v4"// kev :value
+//                exclude group: 'com.android.support'// group 排除group
+//                transitive false//传递依赖 , 默认false 就是不能使用该库中引用的库
+//
+//    }
+
+    /**
+     * provide 第二种情况是， 主工程和库工程都依赖相同的lib,
+     * 那么库工程就可以使用provide ,最后编译统一使用主工程的lib
+     */
+//    provided （'path'）//她引入只参与编译， 比如tinker 这个包， 她的作用是生成application, 真正打包就不需要了
     implementation 'com.android.support:appcompat-v7:27.1.1'
     implementation 'com.android.support:design:27.1.1'
     implementation 'com.android.support.constraint:constraint-layout:1.1.3'
@@ -35,3 +76,155 @@ dependencies {
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 }
+
+beforeEvaluate {
+    println 'app 配置阶段开始'
+}
+
+this.getParentProject()
+
+def getParentProject() {
+    def name = this.getParent().name
+    println "the parent project name is:$name"
+}
+
+/**
+ * 文件拷贝, 可以复制文件， 也可以复制文件夹
+ */
+//copy {
+//    from file('build.outputs/apk/')
+//    into getRootProject().getBuildDir().path + '/app/'
+//    exclude {} //排除文件
+//    rename {} //重命名文件
+//}
+
+/**
+ * 对文件数进行遍历
+ */
+fileTree('build/outputs/apk/') { FileTree fileTree ->
+    fileTree.visit { FileTreeElement element ->
+        println "the file name is : ${element.file.name}"
+        copy {
+            from element.file
+            into getRootProject().getBuildDir().path + '/test/'
+        }
+    }
+}
+
+/**
+ * 外部命令
+ */
+task('apkcopy'){
+    doLast {
+        def sourcePath = this.buildDir.path + '/outputs/apk'
+        def destination = 'E:/私人文档/youbaoProject/'
+        def command = "mv -f ${sourcePath} ${destination}"
+        exec {//执行外部命令
+            try {
+                executable 'bash'
+                args '-c', command
+                println 'the command is execute success'
+            } catch (GradleException e) {
+                println 'the command is execute failed'
+            }
+        }
+    }
+}
+
+//------------task学习 -----------------
+/**
+ * task 的学习， 直接通过task 函数去创建
+ * task 配置 group, 描述 description
+ *
+ */
+task helloTask(group: 'immoc', description: 'task study') {
+    println 'i am helloTask'
+    doFirst {
+        println 'the task group is:' + group
+    }
+    doFirst {}
+}
+helloTask.doFirst {
+    //先执行外部， 在执行什么的内部doFirst
+    println "the task description is: $description"
+}
+
+
+/**
+ * 通过TaskContainer 去创建Task
+ * 配置group , description
+ */
+this.tasks.create(name: 'helloTask2'){
+    setGroup('immoc')
+    setDescription('task study')
+    println 'i am helloTask2'
+    doFirst {
+        println "the helloTask2 is: $description"
+    }
+}
+
+/**
+ * 计算build执行时长
+ */
+def startBuildTime, endBuildTime
+
+this.afterEvaluate {
+        //配置完成， 保证所有task 都配置好了
+    Project project ->
+        def preBuildTask = project.tasks.getByName('preBuild')
+        preBuildTask.doFirst {
+            startBuildTime = System.currentTimeMillis()
+            println "the start time is: $startBuildTime"
+        }
+        def buildTask = project.tasks.getByName('build')
+        buildTask.doLast {
+            endBuildTime = System.currentTimeMillis()
+            println "the build time is: ${endBuildTime - startBuildTime}"
+        }
+
+}
+
+/**
+ * task 添加依赖
+ */
+task taskX {
+    doLast{
+        println 'taskX'
+    }
+}
+
+task taskY {
+    doLast {
+        println 'taskY'
+    }
+}
+
+task lib1 << { //<< == doLast
+//    doLast {
+        println 'lib1'
+//    }
+}
+
+task lib2  {
+    doLast {
+        println 'lib2'
+    }
+}
+
+task noLib  {
+    doLast {
+        println 'noLib'
+    }
+}
+
+//task taskZ(dependsOn:[taskX, taskY]) { //静态添加依赖
+task taskZ {
+    //动态添加 name 为lib 的 task
+    dependsOn this.tasks.findAll { task ->
+        return task.name.startsWith('lib')
+    }
+    doLast{
+        println 'taskZ'
+    }
+}
+//taskZ.dependsOn(taskX, taskY) 第二种添加依赖方法
