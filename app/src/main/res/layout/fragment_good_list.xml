@@ -3,8 +3,11 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/list"
-    android:name="com.cong.congbao.fragment.NearbyStoresFragment"
+    android:name="com.cong.congbao.homePage.GoodsFragment"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".nearbyPage.NearbyStoresFragment"
-    tools:listitem="@layout/fragment_store" />
+    android:layout_marginLeft="16dp"
+    android:layout_marginRight="16dp"
+    android:background="@color/bg_dark"
+    tools:context=".homePage.GoodsFragment"
+    tools:listitem="@layout/fragment_good" />
